@@ -201,6 +201,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .card[draggable="true"]:active{cursor:grabbing}
 .card.dragging{opacity:0.4;transform:rotate(-2deg) scale(0.98);box-shadow:0 12px 30px rgba(227,6,19,0.25)}
 .col.col-drop{background:rgba(227,6,19,0.06);border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;transition:all 0.12s}
+.list-group.col-drop{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px;background:rgba(227,6,19,0.05)}
+.list-group tr[draggable="true"]{cursor:grab}
+.list-group tr.dragging{opacity:0.4}
 .col.col-drop .col-head{border-bottom-color:var(--accent)}
 .empty-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1rem;color:var(--text3)}
 .empty-col svg{width:28px;height:28px;margin-bottom:8px;opacity:0.35}
@@ -347,10 +350,11 @@ tbody tr:hover td{background:var(--surface2)}
 .cal-cell.weekend{background:color-mix(in srgb,var(--surface2) 60%,transparent)}
 .cal-day{font-size:12.5px;font-weight:600;color:var(--text);width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
 .cal-events{display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.cal-evt{display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:5px;background:color-mix(in srgb,var(--c) 14%,transparent);border-left:2px solid var(--c);font-size:10.5px;cursor:pointer;transition:all 0.12s;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.35}
+.cal-evt{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:6px;background:color-mix(in srgb,var(--c) 12%,transparent);border-left:3px solid var(--c);font-size:10.5px;cursor:pointer;transition:all 0.12s;overflow:hidden;line-height:1.25}
 .cal-evt:hover{background:color-mix(in srgb,var(--c) 26%,transparent)}
 .cal-evt-time{font-weight:700;color:var(--c);flex-shrink:0;font-size:10px}
-.cal-evt-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.cal-evt-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;display:block}
+.cal-evt-cli{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;display:block}
 .cal-more{font-size:10px;color:var(--text3);padding:1px 6px;font-weight:600;cursor:pointer}
 .cal-more:hover{color:var(--text)}
 .agenda-group{margin-bottom:22px}
@@ -506,10 +510,10 @@ html.dark .s-logo img,html.dark .brand-icon img,html.dark .login-brand img{filte
 
 <script>
 const DEFAULT_STAGES=[
-  {name:'Lead',short:'Lead',color:'#2563EB',desc:'Potencial Cliente a ser Trabalhado'},
-  {name:'Contato feito',short:'Contato',color:'#D97706',desc:'Aceitou o Convite no Sales Navigation'},
-  {name:'Qualificação',short:'Qualif.',color:'#16A34A',desc:'Aceitou Agendar uma Reunião'},
-  {name:'Reunião Agendada',short:'Reunião',color:'#7C3AED',desc:'Missão Cumprida pelo Gerente de Relacionamento'}
+  {name:'A fazer',short:'A fazer',color:'#2563EB',desc:'Potencial Cliente a ser Trabalhado'},
+  {name:'Fazendo',short:'Fazendo',color:'#D97706',desc:'Aceitou o Convite no Sales Navigation'},
+  {name:'Em espera',short:'Em espera',color:'#16A34A',desc:'Aceitou Agendar uma Reunião'},
+  {name:'Concluído',short:'Concluído',color:'#7C3AED',desc:'Missão Cumprida pelo Gerente de Relacionamento'}
 ];
 let stagesConfig=JSON.parse(JSON.stringify(DEFAULT_STAGES));
 let STAGES=stagesConfig.map(s=>s.name);
@@ -754,6 +758,26 @@ async function saveOrigensConfig(){
     headers:sbHdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
     body:JSON.stringify({key:'origens',value:origensConfig,updated_at:new Date().toISOString()})
   });
+  if(!r.ok)throw new Error(await r.text());
+}
+let entregaveisConfig=[];
+async function loadEntregaveisConfig(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/crm_config?key=eq.entregaveis&select=value`,{headers:sbHdr()});if(r.ok){const data=await r.json();if(Array.isArray(data[0]?.value))entregaveisConfig=data[0].value}}catch{}
+  try{if(!entregaveisConfig.length){const c=JSON.parse(localStorage.getItem('crm_entregaveis')||'null');if(Array.isArray(c))entregaveisConfig=c}}catch{}
+}
+async function saveEntregaveisConfig(){
+  localStorage.setItem('crm_entregaveis',JSON.stringify(entregaveisConfig));
+  const r=await fetch(`${SB_URL}/rest/v1/crm_config`,{method:'POST',headers:sbHdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({key:'entregaveis',value:entregaveisConfig,updated_at:new Date().toISOString()})});
+  if(!r.ok)throw new Error(await r.text());
+}
+let responsaveisConfig=[];
+async function loadResponsaveisConfig(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/crm_config?key=eq.responsaveis&select=value`,{headers:sbHdr()});if(r.ok){const data=await r.json();if(Array.isArray(data[0]?.value))responsaveisConfig=data[0].value}}catch{}
+  try{if(!responsaveisConfig.length){const c=JSON.parse(localStorage.getItem('crm_responsaveis')||'null');if(Array.isArray(c))responsaveisConfig=c}}catch{}
+}
+async function saveResponsaveisConfig(){
+  localStorage.setItem('crm_responsaveis',JSON.stringify(responsaveisConfig));
+  const r=await fetch(`${SB_URL}/rest/v1/crm_config`,{method:'POST',headers:sbHdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({key:'responsaveis',value:responsaveisConfig,updated_at:new Date().toISOString()})});
   if(!r.ok)throw new Error(await r.text());
 }
 let goalsConfig={
@@ -1190,18 +1214,6 @@ function avColor(id,origem){
 }
 
 const CONTATO_ROLES=['Decisor','Influenciador','Patrocinador','Usuário','Gatekeeper'];
-function openNew(){editId=null;modalTab='dados';modal={nome:'',empresa:'',contato:'',email:'',telefone:'',valor:'',stage:STAGES[0]||'Lead',notas:'',proximoContato:'',horaContato:'',origem:'',setor:'',porte:'',desqualificado:false,motivoDesqualificacao:'',bantB:false,bantA:false,bantN:false,bantT:false,contatosExtras:[],historico:[]};newHistTxt='';newHistTipo='Nota';renderModal()}
-function addContato(){
-  modal.contatosExtras=[...(modal.contatosExtras||[]),{id:uid(),nome:'',cargo:'',email:'',telefone:'',role:''}];
-  renderModal();
-}
-function removeContato(id){
-  modal.contatosExtras=(modal.contatosExtras||[]).filter(c=>c.id!==id);
-  renderModal();
-}
-function updateContato(id,field,val){
-  modal.contatosExtras=(modal.contatosExtras||[]).map(c=>c.id===id?{...c,[field]:val}:c);
-}
 function bantScore(p){if(!p)return 0;let s=0;if(p.bantB)s+=25;if(p.bantA)s+=25;if(p.bantN)s+=25;if(p.bantT)s+=25;return s}
 function scoreStatus(s){
   if(s>=75)return{label:'Qualificado',color:'#16A34A',bg:'rgba(22,163,74,0.12)'};
@@ -1209,8 +1221,51 @@ function scoreStatus(s){
   if(s>=25)return{label:'Baixa qualificação',color:'#DC2626',bg:'rgba(220,38,38,0.12)'};
   return{label:'Sem qualificação',color:'#78716C',bg:'rgba(120,113,108,0.12)'};
 }
-function openEdit(id){const p=prospects.find(x=>x.id===id);if(!p)return;editId=id;modalTab='dados';modal=JSON.parse(JSON.stringify(p));newHistTxt='';newHistTipo='Nota';renderModal()}
+function openEdit(id){const p=prospects.find(x=>x.id===id);if(!p)return;editId=id;modalTab='dados';modal=JSON.parse(JSON.stringify(p));newHistTxt='';newHistTipo='Nota';renderTarefaModal()}
 function closeModal(){modal=null;editId=null;const ov=document.getElementById('modal-overlay');if(ov)ov.remove()}
+function openTarefa(){editId=null;modalTab='dados';modal={nome:'',empresa:'',contato:'',email:'',telefone:'',valor:'',stage:STAGES[0]||'A fazer',notas:'',proximoContato:'',horaContato:'',origem:'',setor:'',porte:'Media',desqualificado:false,motivoDesqualificacao:'',bantB:false,bantA:false,bantN:false,bantT:false,contatosExtras:[],historico:[]};renderTarefaModal()}
+function renderTarefaModal(){
+  let ov=document.getElementById('modal-overlay');
+  if(!modal){if(ov)ov.remove();return}
+  if(!ov){ov=document.createElement('div');ov.id='modal-overlay';ov.className='overlay';document.body.appendChild(ov)}
+  const I='background:#4F1717;border:1px solid #6E2222;border-radius:10px;color:#fff;padding:12px 14px;font-size:14px;width:100%;box-sizing:border-box;font-family:inherit';
+  const L='display:block;font-size:14px;font-weight:500;color:#F2EDED;margin-bottom:8px';
+  ov.innerHTML=`<style>
+    #tarefa-modal input::placeholder,#tarefa-modal textarea::placeholder{color:#C98A8A}
+    #tarefa-modal input:focus,#tarefa-modal select:focus,#tarefa-modal textarea:focus{outline:none;border-color:#E30613;box-shadow:0 0 0 3px rgba(227,6,19,0.25)}
+    #tarefa-modal select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+    #tarefa-modal input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.75;cursor:pointer}
+  </style>
+  <div id="tarefa-modal" onclick="event.stopPropagation()" style="background:#1A1A1A;border-radius:16px;width:560px;max-width:100%;max-height:88vh;overflow-y:auto;padding:22px 26px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="font-size:20px;font-weight:700;color:#fff;margin:0">${editId?'Editar tarefa':'Nova tarefa'}</h2>
+      <button aria-label="Fechar" onclick="closeModal()" style="background:none;border:none;color:#BBB;cursor:pointer;font-size:24px;line-height:1;padding:2px 6px">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div><label style="${L}">Nome do Projeto</label><input value="${esc(modal.nome)}" oninput="setField('nome',this.value)" style="${I}"></div>
+      <div><label style="${L}">Tag do Projeto</label><input value="${esc(modal.origem)}" oninput="setField('origem',this.value)" placeholder="Ex.: P-001" style="${I}"></div>
+    </div>
+    <div style="margin-bottom:16px"><label style="${L}">Nome do Cliente</label><input value="${esc(modal.empresa)}" oninput="setField('empresa',this.value)" style="${I}"></div>
+    <div style="margin-bottom:16px"><label style="${L}">Entregável da EAP</label><input list="dl-entregaveis" value="${esc(modal.setor)}" oninput="setField('setor',this.value)" style="${I}"><datalist id="dl-entregaveis">${entregaveisConfig.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist></div>
+    <div style="margin-bottom:16px"><label style="${L}">Detalhe do Entregável</label><textarea oninput="setField('notas',this.value)" style="${I};min-height:120px;resize:vertical;line-height:1.5">${esc(modal.notas)}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div><label style="${L}">Responsavel</label><input list="dl-responsaveis" value="${esc(modal.contato)}" oninput="setField('contato',this.value)" style="${I}"><datalist id="dl-responsaveis">${responsaveisConfig.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist></div>
+      <div><label style="${L}">Prioridade</label><select onchange="setField('porte',this.value)" style="${I}">${['Baixa','Media','Alta'].map(p=>`<option value="${p}"${modal.porte===p?' selected':''}>${p}</option>`).join('')}</select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div><label style="${L}">Data Início</label><input type="date" value="${esc(modal.telefone)}" oninput="setField('telefone',this.value)" style="${I}"></div>
+      <div><label style="${L}">Data Fim</label><input type="date" value="${esc(modal.proximoContato)}" oninput="setField('proximoContato',this.value)" style="${I}"></div>
+    </div>
+    <div style="margin-bottom:22px"><label style="${L}">Coluna</label><select onchange="setField('stage',this.value)" style="${I}">${STAGES.map(s=>`<option value="${esc(s)}"${modal.stage===s?' selected':''}>${esc(s)}</option>`).join('')}</select></div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:${editId?'space-between':'flex-start'};align-items:center;padding:0;border:none;background:transparent">
+      ${editId?`<button class="btn" onclick="deleteProspect()" style="background:transparent;border:1px solid #6E2222;color:#E5736F;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;font-family:inherit">Excluir</button>`:''}
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="closeModal()" style="background:transparent;border:1px solid #555;color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;cursor:pointer;font-family:inherit">Cancelar</button>
+        <button class="btn" onclick="saveModal()" style="background:#E30613;border:none;color:#fff;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+}
 let _savingModal=false;
 async function saveModal(){
   if(_savingModal)return;
@@ -1264,8 +1319,19 @@ async function deleteProspect(){
 }
 function nowHHMM(){const d=new Date();return`${pad2(d.getHours())}:${pad2(d.getMinutes())}`}
 function currentUser(){return session?.user?.email||'Sistema'}
+function moveAllowed(fromStage,toStage){
+  const fi=STAGES.indexOf(fromStage),ti=STAGES.indexOf(toStage);
+  if(fi<0||ti<0)return true;
+  if(ti>fi)return true;
+  if(fi===STAGES.length-2&&ti===fi-1)return true;
+  return false;
+}
 async function moveToStage(id,newStage){
   const p=prospects.find(x=>x.id===id);if(!p||p.stage===newStage)return;
+  if(!moveAllowed(p.stage,newStage)){
+    toast(`Movimento não permitido. Cards só avançam (→). Só "${STAGES[STAGES.length-2]}" pode voltar um passo para "${STAGES[1]}".`,'error');
+    renderContent();return;
+  }
   const oldStage=p.stage;
   const entry={id:uid(),data:today(),hora:nowHHMM(),tipo:'Movimentação',texto:`${oldStage} → ${newStage}`,auto:true,user:currentUser()};
   const newHist=[entry,...(p.historico||[])];
@@ -1295,8 +1361,8 @@ function dragStart(e,id){
   setTimeout(()=>{const el=document.querySelector(`[data-card-id="${id}"]`);if(el)el.classList.add('dragging')},0);
 }
 function dragEnd(){
-  document.querySelectorAll('.card.dragging').forEach(el=>el.classList.remove('dragging'));
-  document.querySelectorAll('.col.col-drop').forEach(el=>el.classList.remove('col-drop'));
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+  document.querySelectorAll('.col-drop').forEach(el=>el.classList.remove('col-drop'));
   dragId=null;
 }
 function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move'}
@@ -1316,15 +1382,7 @@ function dropOnColEl(e,colEl){
   if(id&&stage)moveToStage(id,stage);
 }
 function setField(k,v){modal={...modal,[k]:v}}
-function toggleDesqualificado(val){
-  modal={...modal,desqualificado:val};
-  if(!val){modal.motivoDesqualificacao=''}
-  renderModal();
-}
 function setView(v){view=v;renderTopbar();renderContent()}
-function setTab(t){modalTab=t;renderModal()}
-function addHist(){if(!newHistTxt.trim())return;const h={id:uid(),data:today(),tipo:newHistTipo,texto:newHistTxt.trim()};modal.historico=[h,...(modal.historico||[])];newHistTxt='';renderModal()}
-function delHist(hid){modal.historico=(modal.historico||[]).filter(h=>h.id!==hid);renderModal()}
 function pad2(n){return String(n).padStart(2,'0')}
 function buildICS(p){
   if(!p.proximoContato)return null;
@@ -1717,20 +1775,55 @@ window.addEventListener('scroll',()=>{
   if(tw)tw.classList.toggle('scrolled',window.scrollY>10);
 });
 
+function exportJSON(){
+  try{
+    const blob=new Blob([JSON.stringify(prospects,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`kanban-tarefas-${today()}.json`;
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    toast('JSON exportado');
+  }catch(e){toast('Erro ao exportar JSON','error')}
+}
+function openExportMenu(){
+  const ex=document.getElementById('export-menu');if(ex)ex.remove();
+  const ov=document.createElement('div');ov.id='export-menu';ov.className='overlay';ov.style.zIndex='400';
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
+  ov.innerHTML=`<div class="modal" style="width:360px" onclick="event.stopPropagation()">
+    <div class="modal-top"><div style="display:flex;align-items:center;justify-content:space-between"><h2>Exportar</h2><button class="btn ghost" style="padding:6px" aria-label="Fechar" onclick="document.getElementById('export-menu').remove()">${ICONS.close}</button></div></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn" onclick="exportPDF();document.getElementById('export-menu').remove()" style="--btn-ic:#DC2626;justify-content:flex-start">${ICONS.file} Exportar PDF</button>
+      <button class="btn" onclick="exportCSV();document.getElementById('export-menu').remove()" style="--btn-ic:#16A34A;justify-content:flex-start">${ICONS.download} Exportar CSV</button>
+      <button class="btn" onclick="exportJSON();document.getElementById('export-menu').remove()" style="--btn-ic:#2563EB;justify-content:flex-start">${ICONS.download} Exportar JSON</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function setPageView(p,v){view=v;setPage(p)}
 function renderSidebar(){
   const nav=document.getElementById('sidebar-nav');
   const ftr=document.getElementById('sidebar-footer');
   if(!nav||!ftr)return;
   const admin=isAdmin();
   const items=[
-    {id:'pipeline',label:'Pipeline',icon:ICONS.layers,color:'#2563EB'},
+    {id:'nova',label:'Nova Tarefa',icon:ICONS.plus,color:'#E30613',action:'openTarefa()'},
+    {id:'pipeline',label:'Kanban',icon:ICONS.grid||ICONS.layers,color:'#2563EB',view:'kanban'},
+    {id:'pipeline',label:'Lista',icon:ICONS.list,color:'#14B8A6',view:'lista'},
+    {id:'agenda',label:'Agenda',icon:ICONS.calendar,color:'#7C3AED'},
+    {id:'exportar',label:'Exportar',icon:ICONS.download,color:'#0EA5E9',action:'openExportMenu()'},
     {id:'dashboard',label:'Dashboard',icon:ICONS.trending,color:'#16A34A',adminOnly:true},
     {id:'analytics',label:'Análise',icon:ICONS.chart||ICONS.trending,color:'#EC4899',adminOnly:true},
-    {id:'agenda',label:'Agenda',icon:ICONS.calendar,color:'#7C3AED'},
-    {id:'settings',label:'Configurações',icon:ICONS.settings||ICONS.layers,color:'#F97316',adminOnly:true}
+    {id:'settings',label:'Configuração',icon:ICONS.settings||ICONS.layers,color:'#F97316',adminOnly:true}
   ].filter(it=>!it.adminOnly||admin);
   nav.innerHTML=`<div class="s-section">Navegação</div>`+
-    items.map(it=>`<button class="nav-item${(window.currentPage||'pipeline')===it.id?' active':''}" onclick="setPage('${it.id}')" style="--ic:${it.color}">${it.icon}<span>${it.label}</span></button>`).join('');
+    items.map(it=>{
+      let oc,active=false;
+      if(it.action){oc=it.action}
+      else if(it.view){oc=`setPageView('pipeline','${it.view}')`;active=(window.currentPage||'pipeline')==='pipeline'&&view===it.view}
+      else{oc=`setPage('${it.id}')`;active=(window.currentPage||'pipeline')===it.id}
+      return `<button class="nav-item${active?' active':''}" onclick="${oc}" style="--ic:${it.color}">${it.icon}<span>${it.label}</span></button>`;
+    }).join('');
   const email=session?.user?.email||'';
   const initial=(email[0]||'?').toUpperCase();
   const isDark=document.documentElement.classList.contains('dark');
@@ -1767,7 +1860,7 @@ function destroyAllCharts(){
 function renderTopbar(){
   const all=prospects;
   const page=window.currentPage||'pipeline';
-  const titles={pipeline:{t:'Pipeline de Prospecção',s:`${all.length} prospecto${all.length!==1?'s':''} ativo${all.length!==1?'s':''}`},dashboard:{t:'Dashboard',s:'Visão geral e indicadores'},analytics:{t:'Análise',s:'Atividade diária e histórico mensal'},agenda:{t:'Agenda',s:'Compromissos e próximos contatos'},settings:{t:'Configurações',s:'Personalize seu CRM'}};
+  const titles={pipeline:{t:'Kanban',s:`${all.length} tarefa${all.length!==1?'s':''}`},dashboard:{t:'Dashboard',s:'Visão geral e indicadores'},analytics:{t:'Análise',s:'Atividade diária e histórico mensal'},agenda:{t:'Agenda',s:'Compromissos e próximos contatos'},settings:{t:'Configurações',s:'Personalize seu CRM'}};
   const cur=titles[page]||titles.pipeline;
   document.getElementById('topbar').innerHTML=`
     <div style="display:flex;align-items:center;gap:12px;min-width:0">
@@ -1778,20 +1871,7 @@ function renderTopbar(){
       </div>
     </div>
     <div class="topbar-actions">
-      ${page==='pipeline'?`<div class="view-toggle">
-        <button class="btn${view==='kanban'?' active':''}" onclick="setView('kanban')" style="--btn-ic:#0EA5E9">${ICONS.grid} Kanban</button>
-        <button class="btn${view==='lista'?' active':''}" onclick="setView('lista')" style="--btn-ic:#14B8A6">${ICONS.list} Lista</button>
-      </div>
-      <div class="overflow-menu-wrap">
-        <button class="btn ghost overflow-menu-btn" onclick="toggleOverflowMenu(event)" title="Mais acoes" aria-label="Mais acoes">⋯</button>
-        <div class="overflow-menu" id="overflow-menu" onclick="event.stopPropagation()">
-          <button class="overflow-item" onclick="exportPDF();closeOverflowMenu()"><span class="overflow-ic" style="color:#DC2626">${ICONS.file}</span> Exportar PDF</button>
-          <button class="overflow-item" onclick="exportCSV();closeOverflowMenu()"><span class="overflow-ic" style="color:#16A34A">${ICONS.download}</span> Exportar CSV</button>
-          <button class="overflow-item" onclick="triggerImportExcel();closeOverflowMenu()"><span class="overflow-ic" style="color:#2563EB">${ICONS.download}</span> Importar Excel</button>
-        </div>
-      </div>
       <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
-      <button class="btn primary" onclick="openNew()">${ICONS.plus} Nova Prospeccao</button>`:''}
     </div>`;
 }
 function toggleOverflowMenu(e){
@@ -2015,61 +2095,41 @@ function renderFull(){
       <div class="metric-accent"></div>
       <div class="metric-icon mi-total">${ICONS.users}</div>
       <div class="metric-body">
-        <div class="metric-label">Total</div>
-        <div class="metric-value">${all.length}</div>
-        <div class="metric-sub">prospectos ativos</div>
+        <div class="metric-label">Total de A Fazer</div>
+        <div class="metric-value">${byCnt[0]}</div>
+        <div class="metric-sub">${byCnt[0]===1?'tarefa':'tarefas'} na coluna</div>
       </div>
     </div>
     <div class="metric m-stages">
       <div class="metric-accent"></div>
       <div class="metric-icon mi-stages">${ICONS.layers}</div>
       <div class="metric-body">
-        <div class="metric-label">Por etapa</div>
-        <div class="metric-value sm">${byCnt[0]} <span style="color:var(--text3);font-size:11px">·</span> ${byCnt[1]} <span style="color:var(--text3);font-size:11px">·</span> ${byCnt[2]} <span style="color:var(--text3);font-size:11px">·</span> ${byCnt[3]}</div>
-        <div class="metric-sub">${STAGES.map(s=>stageShort(s)).join(' · ')}</div>
+        <div class="metric-label">Total de Fazendo</div>
+        <div class="metric-value">${byCnt[1]}</div>
+        <div class="metric-sub">${byCnt[1]===1?'tarefa':'tarefas'} na coluna</div>
       </div>
     </div>
     <div class="metric m-today">
       <div class="metric-accent"></div>
       <div class="metric-icon mi-today">${ICONS.clock}</div>
       <div class="metric-body">
-        <div class="metric-label">Contatos hoje</div>
-        <div class="metric-value" style="${todayC>0?'color:var(--amber)':''}">${todayC}</div>
-        <div class="metric-sub">${late>0?`<span style="color:var(--red);font-weight:600">${late} atrasado${late>1?'s':''}</span>`:'Em dia ✓'}</div>
+        <div class="metric-label">Total de Em Espera</div>
+        <div class="metric-value">${byCnt[2]}</div>
+        <div class="metric-sub">${byCnt[2]===1?'tarefa':'tarefas'} na coluna</div>
       </div>
     </div>
     <div class="metric m-pipeline">
       <div class="metric-accent"></div>
       <div class="metric-icon mi-pipeline">${ICONS.trending}</div>
       <div class="metric-body">
-        <div class="metric-label">Pipeline estimado</div>
-        <div class="metric-value sm">${fmt(totalVal)}</div>
-        <div class="metric-sub">valor total</div>
+        <div class="metric-label">Total de Concluido</div>
+        <div class="metric-value">${byCnt[3]}</div>
+        <div class="metric-sub">${byCnt[3]===1?'tarefa':'tarefas'} na coluna</div>
       </div>
     </div>
   </div>`;
 
-  if(late>0||todayC>0){
-    const msgs=[];
-    if(late>0)msgs.push(`${late} prospecto${late>1?'s':''} com contato atrasado`);
-    if(todayC>0)msgs.push(`${todayC} contato${todayC>1?'s':''} para hoje`);
-    html+=`<div class="alert">${ICONS.warn} ${msgs.join(' &nbsp;·&nbsp; ')}</div>`;
-  }
-
-  html+=`<div class="filters">
-    <div class="search-wrap">${ICONS.search}<input placeholder="Buscar (nome, empresa, cargo, e-mail, telefone, setor, notas...)" aria-label="Buscar em todos os campos do prospecto" oninput="onSearchInput(this.value)" value="${esc(filterSearch)}"></div>
-    <select onchange="filterStage=this.value;renderContent()" aria-label="Filtrar por etapa">
-      <option value="">Todas as etapas</option>
-      ${STAGES.map(s=>`<option value="${esc(s)}"${filterStage===s?' selected':''}>${esc(s)}</option>`).join('')}
-    </select>
-    <select onchange="filterOrigem=this.value;renderContent()" aria-label="Filtrar por origem">
-      <option value="">Todas as origens</option>
-      ${origensConfig.map(o=>`<option value="${esc(o)}"${filterOrigem===o?' selected':''}>${esc(o)}</option>`).join('')}
-    </select>
-    <button class="btn${showDesq?' primary':' ghost'}" onclick="showDesq=!showDesq;renderFull()" title="Alternar entre prospectos ativos e desqualificados">${showDesq?'✓ Desqualificados':'Ativos'}</button>
-    ${(filterSearch||filterStage||filterOrigem)?`<button class="btn ghost" onclick="filterSearch='';filterStage='';filterOrigem='';renderFull()">Limpar filtro</button>`:''}
-  </div>
-  <div id="content-area"></div>`;
+  html+=`<div id="content-area"></div>`;
 
   app.innerHTML=html;
   renderContent();
@@ -2165,7 +2225,128 @@ function computeDormant(){
     return null;
   }).filter(Boolean).sort((a,b)=>b.daysStuck-a.daysStuck);
 }
-async function renderAnalytics(){
+function computeAgentInsights(){
+  const all=prospects;
+  const done=STAGES[STAGES.length-1],firstActive=STAGES[1]||done;
+  const today0=parseYmd(today());
+  const activeStages=STAGES.slice(1,-1);
+  const norm=s=>(s||'').trim().toLowerCase();
+  const typeKey=p=>norm(p.setor)||norm(p.origem)||'(sem tipo)';
+  const typeLabel=p=>(p.setor&&p.setor.trim())||(p.origem&&p.origem.trim())||'(sem tipo)';
+  const avg=arr=>arr.length?Math.round(arr.reduce((s,x)=>s+x,0)/arr.length):null;
+  function cycleOf(p){
+    const tl=stageTimeline(p);
+    const de=tl.filter(x=>x.stage===done).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0];
+    if(!de)return null;
+    const ae=tl.filter(x=>x.stage===firstActive).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0];
+    const created=isYmd(p.criadoEm)?parseYmd(p.criadoEm):(tl[0]&&tl[0].enteredAt);
+    const ref=ae||created;return ref?daysBetween(ref,de):null;
+  }
+  const groups={};
+  all.forEach(p=>{
+    const k=typeKey(p);
+    if(!groups[k])groups[k]={label:typeLabel(p),total:0,done:0,cycles:[],onTime:0,withFim:0};
+    const g=groups[k];g.total++;
+    if(p.stage===done){g.done++;const c=cycleOf(p);if(c!=null&&c>=0)g.cycles.push(c);
+      const tl=stageTimeline(p);const de=tl.filter(x=>x.stage===done).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0];
+      if(isYmd(p.proximoContato)&&de){g.withFim++;if(de<=parseYmd(p.proximoContato))g.onTime++;}}
+  });
+  const allCycles=[];Object.values(groups).forEach(g=>allCycles.push(...g.cycles));
+  const globalAvgCycle=avg(allCycles);
+  const learnings=Object.values(groups).filter(g=>g.total>=2).map(g=>({label:g.label,count:g.total,doneCount:g.done,avgCycle:avg(g.cycles),onTimeRate:g.withFim?Math.round(g.onTime/g.withFim*100):null})).sort((a,b)=>b.count-a.count);
+  const predictions=all.filter(p=>p.stage!==done).map(p=>{
+    const g=groups[typeKey(p)];
+    const base=(g&&g.cycles.length)?avg(g.cycles):globalAvgCycle;
+    const tl=stageTimeline(p);
+    const start=tl.filter(x=>x.stage===firstActive).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0]||(isYmd(p.telefone)?parseYmd(p.telefone):null)||(isYmd(p.criadoEm)?parseYmd(p.criadoEm):today0);
+    let predFinish=null,risk='Sem base',riskLevel=0;
+    const basis=(g&&g.cycles.length)?'histórico do tipo':(globalAvgCycle!=null?'média geral':'sem base');
+    if(base!=null){
+      predFinish=new Date(start);predFinish.setDate(start.getDate()+base);
+      if(isYmd(p.proximoContato)){const slack=daysBetween(predFinish,parseYmd(p.proximoContato));
+        if(slack<0){risk='Atraso provável';riskLevel=3;}else if(slack<=2){risk='No limite';riskLevel=2;}else{risk='No prazo';riskLevel=1;}}
+      else{risk='Sem Data Fim';riskLevel=0;}
+    }
+    return {p,predDays:base,predFinish,risk,riskLevel,basis};
+  }).sort((a,b)=>b.riskLevel-a.riskLevel);
+  const wl={};all.filter(p=>activeStages.includes(p.stage)).forEach(p=>{const r=(p.contato||'').trim()||'(sem responsável)';wl[r]=(wl[r]||0)+1;});
+  const workload=Object.entries(wl).map(([r,n])=>({r,n})).sort((a,b)=>b.n-a.n);
+  const recs=[];
+  const atRisk=predictions.filter(x=>x.riskLevel===3);
+  if(atRisk.length)recs.push({level:3,text:`${atRisk.length} tarefa(s) com atraso provável segundo o histórico — repriorize ou realoque recursos. Ex.: ${atRisk.slice(0,3).map(x=>typeLabel(x.p)).join(', ')}.`});
+  const slow=learnings.filter(l=>l.avgCycle!=null).sort((a,b)=>b.avgCycle-a.avgCycle)[0];
+  if(slow)recs.push({level:2,text:`O tipo "${slow.label}" é o mais lento (Cycle Time médio ${slow.avgCycle}d). Investigue gargalos ou quebre em entregáveis menores.`});
+  const lowOT=learnings.filter(l=>l.onTimeRate!=null&&l.onTimeRate<60).sort((a,b)=>a.onTimeRate-b.onTimeRate)[0];
+  if(lowOT)recs.push({level:2,text:`"${lowOT.label}" cumpre o prazo em apenas ${lowOT.onTimeRate}% — revise a estimativa de Data Fim para esse tipo.`});
+  const over=workload.filter(w=>w.n>=4)[0];
+  if(over)recs.push({level:2,text:`${over.r} está com ${over.n} tarefas em andamento — risco de sobrecarga; considere limitar o WIP por pessoa.`});
+  if(!recs.length)recs.push({level:1,text:'Sem riscos relevantes detectados. Continue registrando movimentações para o agente aprender mais.'});
+  recs.sort((a,b)=>b.level-a.level);
+  return {learnings,predictions,workload,recs,typeLabel};
+}
+function renderAnalytics(){
+  const a=computeAgentInsights();
+  const rc=l=>l===3?'#DC2626':(l===2?'#D97706':(l===1?'#16A34A':'#64748B'));
+  const dd=x=>(x==null?'—':x+'d');
+  const fmtD=d=>d?`${pad2(d.getDate())}/${pad2(d.getMonth()+1)}`:'—';
+  document.getElementById('app').innerHTML=`
+    <div class="chart-card" style="border-left:3px solid #7C3AED">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(124,58,237,0.12);color:#7C3AED;display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICONS.trending||''}</div>
+        <div>
+          <div class="chart-card-title" style="margin:0">Agente de IA · Análise preditiva</div>
+          <div class="chart-card-sub" style="margin:0">Observa as tarefas, aprende com as que se repetem e prevê riscos para orientar a engenharia</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">Recomendações do agente para a equipe</div>
+      <div class="chart-card-sub">Decisões sugeridas, ordenadas por prioridade</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+        ${a.recs.map(r=>`<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border:1px solid ${rc(r.level)};border-left-width:3px;border-radius:8px;background:${hex2rgba(rc(r.level),0.06)}">
+          <span style="font-size:9.5px;font-weight:700;color:${rc(r.level)};background:${hex2rgba(rc(r.level),0.12)};padding:3px 8px;border-radius:99px;letter-spacing:.5px;flex-shrink:0;margin-top:1px">${r.level===3?'AÇÃO URGENTE':r.level===2?'ATENÇÃO':'OK'}</span>
+          <span style="font-size:13px;color:var(--text);line-height:1.5">${esc(r.text)}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">Predições das tarefas em aberto</div>
+      <div class="chart-card-sub">Conclusão prevista a partir do aprendizado do tipo de tarefa</div>
+      <div class="table-wrap" style="margin-top:8px"><table>
+        <thead><tr><th>Tarefa</th><th>Tipo</th><th>Prev. (Cycle)</th><th>Conclusão prev.</th><th>Data Fim</th><th>Risco</th></tr></thead>
+        <tbody>${a.predictions.length?a.predictions.map(x=>`<tr onclick="openEdit('${x.p.id}')" style="cursor:pointer">
+          <td>${esc(x.p.setor)||esc(x.p.nome)||'—'}</td>
+          <td style="color:var(--text2)">${esc(a.typeLabel(x.p))}</td>
+          <td>${dd(x.predDays)} <span style="color:var(--text3);font-size:10px">${esc(x.basis)}</span></td>
+          <td>${fmtD(x.predFinish)}</td>
+          <td>${isYmd(x.p.proximoContato)?x.p.proximoContato.split('-').reverse().slice(0,2).join('/'):'—'}</td>
+          <td><span class="badge dyn" style="--c:${rc(x.riskLevel)};--c-bg:${hex2rgba(rc(x.riskLevel),0.12)}">${esc(x.risk)}</span></td>
+        </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3)">Nenhuma tarefa em aberto</td></tr>'}</tbody>
+      </table></div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">O que o agente aprendeu · tarefas que se repetem</div>
+      <div class="chart-card-sub">Tipos de tarefa recorrentes (mesmo Entregável ou Tag) e seus padrões</div>
+      <div class="table-wrap" style="margin-top:8px"><table>
+        <thead><tr><th>Tipo de tarefa</th><th>Ocorrências</th><th>Concluídas</th><th>Cycle médio</th><th>No prazo</th></tr></thead>
+        <tbody>${a.learnings.length?a.learnings.map(l=>`<tr>
+          <td>${esc(l.label)}</td><td>${l.count}</td><td>${l.doneCount}</td><td>${dd(l.avgCycle)}</td><td>${l.onTimeRate==null?'—':l.onTimeRate+'%'}</td>
+        </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3)">Ainda sem tipos repetidos suficientes. O agente aprende quando o mesmo Entregável/Tag aparece em 2+ tarefas concluídas.</td></tr>'}</tbody>
+      </table></div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">Carga por responsável (WIP)</div>
+      <div class="chart-card-sub">Tarefas em andamento por pessoa</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:2px">
+        ${a.workload.length?a.workload.map(w=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)"><span>${esc(w.r)}</span><b style="color:${w.n>=4?'var(--red)':'var(--text)'}">${w.n}</b></div>`).join(''):'<div style="color:var(--text3);font-size:13px;padding:1rem">Nenhuma tarefa em andamento</div>'}
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px;background:var(--surface2)">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7"><b>Como o agente funciona:</b> ele segue o ciclo agêntico — <b>observa</b> o histórico de movimentações e datas, <b>aprende</b> o Cycle Time típico de cada tipo de tarefa recorrente, <b>prevê</b> a conclusão das tarefas abertas e o risco contra a Data Fim, e <b>recomenda</b> decisões à engenharia. É um motor preditivo local; pode ser conectado à <b>Claude API</b> para gerar análises em linguagem natural.</div>
+    </div>
+  `;
+}
+async function renderAnalyticsOLD_unused(){
   const app=document.getElementById('app');
   const d=analyticsDate,y=d.getFullYear(),m=d.getMonth();
   const mKey=monthKey(d);
@@ -2491,11 +2672,12 @@ const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agos
 const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function ymd(d){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`}
 function parseYmd(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
-function agendaNav(dir){if(agendaView==='month')agendaDate.setMonth(agendaDate.getMonth()+dir);else agendaDate.setDate(agendaDate.getDate()+7*dir);renderAgenda()}
+function agendaNav(dir){if(agendaView==='month')agendaDate.setMonth(agendaDate.getMonth()+dir);else if(agendaView==='day')agendaDate.setDate(agendaDate.getDate()+dir);else agendaDate.setDate(agendaDate.getDate()+7*dir);renderAgenda()}
+function weekRange(date){const start=new Date(date.getFullYear(),date.getMonth(),date.getDate()-date.getDay());const end=new Date(start);end.setDate(start.getDate()+6);return {start,end};}
 function agendaToday(){agendaDate=new Date();renderAgenda()}
 function setAgendaView(v){agendaView=v;renderAgenda()}
-function agendaTitle(){if(agendaView==='month')return `${MESES[agendaDate.getMonth()]} ${agendaDate.getFullYear()}`;return 'Lista de Compromissos'}
-function agendaNewAt(ymdStr){openNew();modal.proximoContato=ymdStr;renderModal()}
+function agendaTitle(){if(agendaView==='month')return `${MESES[agendaDate.getMonth()]} ${agendaDate.getFullYear()}`;if(agendaView==='day')return `${DIAS[agendaDate.getDay()]}, ${pad2(agendaDate.getDate())} ${MESES[agendaDate.getMonth()]} ${agendaDate.getFullYear()}`;if(agendaView==='week'){const r=weekRange(agendaDate);return `${pad2(r.start.getDate())}/${pad2(r.start.getMonth()+1)} – ${pad2(r.end.getDate())}/${pad2(r.end.getMonth()+1)}`;}return 'Lista de Compromissos'}
+function agendaNewAt(ymdStr){openTarefa();modal.proximoContato=ymdStr;renderTarefaModal()}
 function renderAgenda(){
   const app=document.getElementById('app');
   app.innerHTML=`
@@ -2509,13 +2691,15 @@ function renderAgenda(){
       <div style="display:flex;gap:10px;align-items:center">
         <div class="view-toggle">
           <button class="btn${agendaView==='month'?' active':''}" onclick="setAgendaView('month')">${ICONS.grid} Mês</button>
+          <button class="btn${agendaView==='week'?' active':''}" onclick="setAgendaView('week')">${ICONS.calendar} Semana</button>
+          <button class="btn${agendaView==='day'?' active':''}" onclick="setAgendaView('day')">${ICONS.clock} Dia</button>
           <button class="btn${agendaView==='list'?' active':''}" onclick="setAgendaView('list')">${ICONS.list} Lista</button>
         </div>
-        <button class="btn primary" onclick="agendaNewAt(ymd(new Date()))">${ICONS.plus} Novo compromisso</button>
+        <button class="btn primary" onclick="agendaNewAt(ymd(new Date()))">${ICONS.plus} Nova Tarefa</button>
       </div>
     </div>
     <div id="agenda-body"></div>`;
-  if(agendaView==='month')renderAgendaMonth();else renderAgendaList();
+  if(agendaView==='month')renderAgendaMonth();else if(agendaView==='week')renderAgendaWeek();else if(agendaView==='day')renderAgendaDay();else renderAgendaList();
 }
 function renderAgendaMonth(){
   const area=document.getElementById('agenda-body');
@@ -2529,9 +2713,7 @@ function renderAgendaMonth(){
   for(let d=1;d<=daysInMonth;d++)cells.push({y,m,d,outside:false});
   let nd=1;while(cells.length<42)cells.push({y:m===11?y+1:y,m:m===11?0:m+1,d:nd++,outside:true});
   const tYmd=ymd(new Date());
-  const eventMap={};
-  prospects.filter(p=>p.proximoContato).forEach(p=>{(eventMap[p.proximoContato]=eventMap[p.proximoContato]||[]).push(p)});
-  Object.values(eventMap).forEach(arr=>arr.sort((a,b)=>(a.horaContato||'99:99').localeCompare(b.horaContato||'99:99')));
+  const eventMap=agendaEventMap();
   let html=`<div class="cal-month"><div class="cal-head">${DIAS.map(d=>`<div>${d}</div>`).join('')}</div><div class="cal-grid">`;
   cells.forEach((c,i)=>{
     const cellYmd=`${c.y}-${pad2(c.m+1)}-${pad2(c.d)}`;
@@ -2541,9 +2723,12 @@ function renderAgendaMonth(){
     html+=`<div class="cal-cell${c.outside?' outside':''}${isToday?' today':''}${isWknd?' weekend':''}" onclick="agendaNewAt('${cellYmd}')">
       <div class="cal-day">${c.d}</div>
       <div class="cal-events">
-        ${evts.slice(0,3).map(e=>`<div class="cal-evt" style="--c:${stageColor(e.stage)}" onclick="event.stopPropagation();openEdit('${e.id}')" title="${esc((e.horaContato?e.horaContato+' — ':'')+e.nome+(e.empresa?' ('+e.empresa+')':''))}">
-          ${e.horaContato?`<span class="cal-evt-time">${esc(e.horaContato)}</span>`:''}
-          <span class="cal-evt-name">${esc(e.nome)}</span>
+        ${evts.slice(0,3).map(e=>`<div class="cal-evt" style="--c:${stageColor(e.stage)}" onclick="event.stopPropagation();openEdit('${e.id}')" title="${esc((e.horaContato?e.horaContato+' — ':'')+(e.setor||e.nome)+(e.contato?' · '+e.contato:'')+(e.empresa?' ('+e.empresa+')':''))}">
+          <span class="card-avatar ${avColor(e.id,e.origem)}" style="width:18px;height:18px;font-size:8px;border-radius:4px;flex-shrink:0">${esc(initials(e.contato||e.nome))}</span>
+          <span style="min-width:0;overflow:hidden">
+            <span class="cal-evt-name">${esc(e.setor)||esc(e.nome)}</span>
+            <span class="cal-evt-cli">${esc(e.empresa)||'—'}</span>
+          </span>
         </div>`).join('')}
         ${evts.length>3?`<div class="cal-more" onclick="event.stopPropagation();agendaJumpTo('${cellYmd}')">+${evts.length-3} mais</div>`:''}
       </div>
@@ -2553,6 +2738,93 @@ function renderAgendaMonth(){
   area.innerHTML=html;
 }
 function agendaJumpTo(ymdStr){agendaView='list';agendaDate=parseYmd(ymdStr);renderAgenda()}
+function isYmd(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'')}
+function taskDateRange(p){
+  const ini=isYmd(p.telefone)?p.telefone:null;
+  const fim=isYmd(p.proximoContato)?p.proximoContato:null;
+  if(!ini&&!fim)return [];
+  if(ini&&fim){
+    let d=parseYmd(ini),end=parseYmd(fim);
+    if(d>end){const tmp=d;d=end;end=tmp;}
+    const out=[];let g=0;
+    while(d<=end&&g<400){out.push(ymd(d));d.setDate(d.getDate()+1);g++;}
+    return out;
+  }
+  return [fim||ini];
+}
+function agendaEventMap(){const m={};prospects.forEach(p=>{taskDateRange(p).forEach(dt=>{(m[dt]=m[dt]||[]).push(p)})});Object.values(m).forEach(arr=>arr.sort((a,b)=>(a.horaContato||'99:99').localeCompare(b.horaContato||'99:99')));return m;}
+function agendaEvtChip(e){return `<div class="cal-evt" style="--c:${stageColor(e.stage)}" onclick="event.stopPropagation();openEdit('${e.id}')" title="${esc((e.horaContato?e.horaContato+' — ':'')+(e.setor||e.nome)+(e.contato?' · '+e.contato:'')+(e.empresa?' ('+e.empresa+')':''))}">
+    <span class="card-avatar ${avColor(e.id,e.origem)}" style="width:18px;height:18px;font-size:8px;border-radius:4px;flex-shrink:0">${esc(initials(e.contato||e.nome))}</span>
+    <span style="min-width:0;overflow:hidden">
+      <span class="cal-evt-name">${esc(e.setor)||esc(e.nome)}</span>
+      <span class="cal-evt-cli">${esc(e.empresa)||'—'}</span>
+    </span>
+  </div>`;}
+function agendaWeekCard(e){return `<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;border-left:3px solid ${stageColor(e.stage)};background:${hex2rgba(stageColor(e.stage),0.12)};cursor:pointer;min-height:58px;overflow:hidden" onclick="event.stopPropagation();openEdit('${e.id}')" title="${esc((e.setor||e.nome)+(e.contato?' · '+e.contato:'')+(e.empresa?' ('+e.empresa+')':''))}">
+    <span class="card-avatar ${avColor(e.id,e.origem)}" style="width:24px;height:24px;font-size:10px;border-radius:6px;flex-shrink:0">${esc(initials(e.contato||e.nome))}</span>
+    <span style="min-width:0;overflow:hidden">
+      <span class="cal-evt-name" style="font-size:12px">${esc(e.setor)||esc(e.nome)}</span>
+      <span class="cal-evt-cli" style="font-size:10px">${esc(e.empresa)||'—'}</span>
+    </span>
+  </div>`;}
+function agendaDayCard(e){
+  const pcor=e.porte==='Alta'?'#DC2626':(e.porte==='Media'?'#D97706':'#16A34A');
+  const prazo=e.proximoContato?e.proximoContato.split('-').reverse().join('/'):'—';
+  const fld=(label,val)=>`<div style="min-width:0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:3px">${label}</div><div style="font-size:13.5px;color:var(--text);overflow-wrap:anywhere">${val||'—'}</div></div>`;
+  return `<div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 24px;border-radius:12px;border:1px solid var(--border);border-left:4px solid ${stageColor(e.stage)};background:${hex2rgba(stageColor(e.stage),0.06)};cursor:pointer" onclick="event.stopPropagation();openEdit('${e.id}')">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="card-avatar ${avColor(e.id,e.origem)}" style="width:46px;height:46px;font-size:16px;border-radius:11px;flex-shrink:0">${esc(initials(e.contato||e.nome))}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:19px;font-weight:600;color:var(--text)">${esc(e.nome)||'—'}</div>
+        <div style="font-size:13px;color:var(--text2)">${esc(e.empresa)||'—'}</div>
+      </div>
+      <span class="badge dyn" style="--c:${stageColor(e.stage)};--c-bg:${hex2rgba(stageColor(e.stage),0.12)};flex-shrink:0">${esc(e.stage)}</span>
+      ${e.porte?`<span class="badge dyn" style="--c:${pcor};--c-bg:${hex2rgba(pcor,0.12)};flex-shrink:0">${esc(e.porte)}</span>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 20px;border-top:1px solid var(--border);padding-top:14px">
+      ${fld('Tag do Projeto',esc(e.origem))}
+      ${fld('Responsável',esc(e.contato))}
+      ${fld('Cliente',esc(e.empresa))}
+      ${fld('Prioridade',esc(e.porte))}
+      ${fld('Data Início',e.telefone?e.telefone.split('-').reverse().join('/'):'—')}
+      ${fld('Data Fim',prazo+(e.horaContato?' · '+esc(e.horaContato):''))}
+      ${fld('Coluna',esc(e.stage))}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--border);padding-top:14px">
+      ${fld('Entregável',esc(e.setor))}
+      ${fld('Detalhe do Entregável',esc(e.notas))}
+    </div>
+  </div>`;}
+function renderAgendaWeek(){
+  const area=document.getElementById('agenda-body');
+  const {start}=weekRange(agendaDate);
+  const tYmd=ymd(new Date());
+  const eventMap=agendaEventMap();
+  let head='',grid='';
+  for(let i=0;i<7;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const cellYmd=ymd(d);
+    const evts=eventMap[cellYmd]||[];
+    head+=`<div>${DIAS[d.getDay()]} ${pad2(d.getDate())}/${pad2(d.getMonth()+1)}</div>`;
+    grid+=`<div class="cal-cell${cellYmd===tYmd?' today':''}${(i===0||i===6)?' weekend':''}" style="min-height:420px" onclick="agendaNewAt('${cellYmd}')">
+      <div class="cal-day">${d.getDate()}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;overflow:hidden">${evts.map(agendaWeekCard).join('')}</div>
+    </div>`;
+  }
+  area.innerHTML=`<div class="cal-month"><div class="cal-head">${head}</div><div class="cal-grid" style="grid-auto-rows:auto">${grid}</div></div>`;
+}
+function renderAgendaDay(){
+  const area=document.getElementById('agenda-body');
+  const cellYmd=ymd(agendaDate);
+  const evts=agendaEventMap()[cellYmd]||[];
+  let html=`<div class="cal-month">
+    <div class="cal-head" style="grid-template-columns:1fr"><div>${DIAS[agendaDate.getDay()]} · ${pad2(agendaDate.getDate())} ${MESES[agendaDate.getMonth()]} ${agendaDate.getFullYear()}</div></div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;min-height:64vh" onclick="agendaNewAt('${cellYmd}')">`;
+  if(!evts.length)html+=`<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px">Nenhuma tarefa neste dia. Clique para adicionar.</div>`;
+  else html+=evts.map(agendaDayCard).join('');
+  html+=`</div></div>`;
+  area.innerHTML=html;
+}
 function renderAgendaList(){
   const area=document.getElementById('agenda-body');
   const t=new Date();const t0=new Date(t.getFullYear(),t.getMonth(),t.getDate());
@@ -2581,26 +2853,87 @@ function renderAgendaList(){
     groups[key].forEach(({p,d,diff})=>{
       const dayName=DIAS[d.getDay()];
       const dateStr=`${pad2(d.getDate())}/${pad2(d.getMonth()+1)}`;
-      html+=`<div class="agenda-item${diff<0?' late':''}" style="--c:${stageColor(p.stage)}" onclick="openEdit('${p.id}')">
+      html+=`<div class="agenda-item${diff<0?' late':''}" style="--c:${stageColor(p.stage)};background:${hex2rgba(stageColor(p.stage),0.07)};border-left-color:${stageColor(p.stage)}" onclick="openEdit('${p.id}')">
         <div class="agenda-when">
           <div class="agenda-date">${dateStr}</div>
           <div class="agenda-time">${dayName}${p.horaContato?' · '+esc(p.horaContato):''}</div>
         </div>
-        <div class="agenda-body">
-          <div class="agenda-name">${esc(p.nome)}</div>
-          <div class="agenda-empresa">${esc(p.empresa)||'—'}${p.notas?' · '+esc(p.notas.slice(0,60)):''}</div>
+        <div class="agenda-body" style="display:flex;align-items:center;gap:9px">
+          <div class="card-avatar ${avColor(p.id,p.origem)}" title="Responsável: ${esc(p.contato||'—')}">${esc(initials(p.contato||p.nome))}</div>
+          <div style="min-width:0">
+            <div class="agenda-name">${esc(p.setor)||'—'}</div>
+            <div class="agenda-empresa">${esc(p.empresa)||'—'}</div>
+          </div>
         </div>
         <span class="badge dyn" style="--c:${stageColor(p.stage)};--c-bg:${hex2rgba(stageColor(p.stage),0.12)}">${esc(p.stage)}</span>
       </div>`;
     });
     html+=`</div>`;
   });
-  if(!evts.length)html=`<div class="empty" style="padding:3rem"><span>Nenhum compromisso agendado. Clique em <b>Novo compromisso</b> para adicionar.</span></div>`;
+  if(!evts.length)html=`<div class="empty" style="padding:3rem"><span>Nenhuma tarefa agendada. Clique em <b>Nova Tarefa</b> para adicionar.</span></div>`;
   area.innerHTML=html;
 }
 
 let editStages=null,settingsDirty=false,stageDragIdx=null;
 function renderSettings(){
+  const app=document.getElementById('app');
+  const ta='width:100%;min-height:180px;padding:12px 14px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);line-height:1.7;resize:vertical';
+  app.innerHTML=`
+    <div class="chart-card">
+      <div class="chart-card-title">Cores e nomes das colunas (cards)</div>
+      <div class="chart-card-sub">Define o nome e a cor de cada coluna — a cor é aplicada na borda do card</div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+        ${stagesConfig.map((s,i)=>`<div style="display:flex;align-items:center;gap:12px">
+          <input type="color" id="cfg-stage-color-${i}" value="${esc(s.color)}" oninput="settingsDirty=true" style="width:46px;height:38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);cursor:pointer;flex-shrink:0">
+          <input type="text" id="cfg-stage-name-${i}" value="${esc(s.name)}" oninput="settingsDirty=true" placeholder="Nome da coluna" style="flex:1;padding:9px 13px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;background:var(--bg);color:var(--text)">
+        </div>`).join('')}
+      </div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:10px">Renomear uma coluna remapeia automaticamente os cards que estão nela.</div>
+    </div>
+
+    <div class="dash-grid" style="margin-top:14px">
+      <div class="chart-card">
+        <div class="chart-card-title">Entregáveis da EAP</div>
+        <div class="chart-card-sub">Um por linha. Aparecem como sugestões no campo "Entregável da EAP" em Nova Tarefa.</div>
+        <textarea id="cfg-entregaveis" oninput="settingsDirty=true" placeholder="Ex.:&#10;Módulo de login&#10;Tela de pedidos&#10;Relatório mensal" style="${ta};margin-top:10px">${esc(entregaveisConfig.join('\n'))}</textarea>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Responsáveis</div>
+        <div class="chart-card-sub">Um por linha. Aparecem como sugestões no campo "Responsável" em Nova Tarefa.</div>
+        <textarea id="cfg-responsaveis" oninput="settingsDirty=true" placeholder="Ex.:&#10;Ana Souza&#10;Carlos Lima&#10;Márcia" style="${ta};margin-top:10px">${esc(responsaveisConfig.join('\n'))}</textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+      <button class="btn primary" onclick="saveSettings()">${ICONS.check||''} Salvar configurações</button>
+    </div>
+  `;
+}
+function saveSettings(){
+  const oldNames=stagesConfig.map(s=>s.name);
+  stagesConfig.forEach((s,i)=>{
+    const ni=document.getElementById('cfg-stage-name-'+i);
+    const ci=document.getElementById('cfg-stage-color-'+i);
+    if(ni&&ni.value.trim())s.name=ni.value.trim();
+    if(ci)s.color=ci.value;
+    s.short=s.name;
+  });
+  const newNames=stagesConfig.map(s=>s.name);
+  const map={};oldNames.forEach((o,i)=>{if(o!==newNames[i])map[o]=newNames[i]});
+  if(Object.keys(map).length)prospects.forEach(p=>{if(map[p.stage])p.stage=map[p.stage]});
+  refreshStages();
+  const eT=document.getElementById('cfg-entregaveis');
+  const rT=document.getElementById('cfg-responsaveis');
+  if(eT)entregaveisConfig=eT.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(rT)responsaveisConfig=rT.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  settingsDirty=false;
+  Promise.allSettled([saveStagesConfig(),saveEntregaveisConfig(),saveResponsaveisConfig()]).then(()=>{
+    if(Object.keys(map).length){Promise.allSettled(prospects.filter(p=>true).map(p=>dbPatch(p.id,{stage:p.stage}).catch(()=>{})));}
+    toast('Configurações salvas');
+    renderFull();
+  });
+}
+function renderSettingsOLD_unused(){
   if(!editStages)editStages=JSON.parse(JSON.stringify(stagesConfig));
   const app=document.getElementById('app');
   app.innerHTML=`
@@ -2967,7 +3300,134 @@ function renderActivityFeed(limit){
   }).join('');
 }
 let dashCharts=[];
+function pctile(arr,p){if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);return s[Math.min(s.length-1,Math.floor(p/100*s.length))];}
+function daysBetween(a,b){return Math.round((b-a)/86400000);}
+function stageTimeline(p){
+  const movs=(p.historico||[]).filter(h=>h.tipo==='Movimentação'&&h.texto&&h.texto.includes('→')).map(h=>{
+    const parts=h.texto.split('→');const from=(parts[0]||'').trim();const to=(parts[1]||'').trim();
+    const d=isYmd((h.data||'').slice(0,10))?parseYmd(h.data.slice(0,10)):null;
+    return {from,to,date:d};
+  }).filter(m=>m.date).sort((a,b)=>a.date-b.date);
+  const created=isYmd(p.criadoEm)?parseYmd(p.criadoEm):(movs[0]?movs[0].date:null);
+  const tl=[];
+  if(movs.length){tl.push({stage:movs[0].from,enteredAt:created||movs[0].date});movs.forEach(m=>tl.push({stage:m.to,enteredAt:m.date}));}
+  else tl.push({stage:p.stage,enteredAt:created});
+  return tl;
+}
+function computeFlowKPIs(){
+  const all=prospects;
+  const backlog=STAGES[0],done=STAGES[STAGES.length-1];
+  const activeStages=STAGES.slice(1,-1);const firstActive=STAGES[1]||done;
+  const today0=parseYmd(today());
+  const cutoff=new Date(today0);cutoff.setDate(today0.getDate()-30);
+  const byStage={};STAGES.forEach(s=>byStage[s]=all.filter(p=>p.stage===s).length);
+  const wip=activeStages.reduce((s,st)=>s+(byStage[st]||0),0);
+  const lead=[],cycle=[];let thr30=0,onTime=0,doneWithFim=0;
+  const colDur={};STAGES.forEach(s=>colDur[s]=[]);
+  const wipAging=[];
+  all.forEach(p=>{
+    const tl=stageTimeline(p);
+    for(let i=0;i<tl.length;i++){const start=tl[i].enteredAt;const end=(i+1<tl.length)?tl[i+1].enteredAt:today0;if(start&&end){const d=daysBetween(start,end);if(d>=0&&colDur[tl[i].stage])colDur[tl[i].stage].push(d);}}
+    const doneEntry=tl.filter(x=>x.stage===done).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0];
+    const created=isYmd(p.criadoEm)?parseYmd(p.criadoEm):(tl[0]&&tl[0].enteredAt);
+    const actEntry=tl.filter(x=>x.stage===firstActive).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>a-b)[0];
+    if(p.stage===done&&doneEntry){
+      if(created)lead.push(daysBetween(created,doneEntry));
+      if(actEntry)cycle.push(daysBetween(actEntry,doneEntry));else if(created)cycle.push(daysBetween(created,doneEntry));
+      if(doneEntry>=cutoff)thr30++;
+      if(isYmd(p.proximoContato)){doneWithFim++;if(doneEntry<=parseYmd(p.proximoContato))onTime++;}
+    }
+    if(activeStages.includes(p.stage)){const enter=tl.filter(x=>x.stage===p.stage).map(x=>x.enteredAt).filter(Boolean).sort((a,b)=>b-a)[0]||created;if(enter)wipAging.push({p,age:daysBetween(enter,today0)});}
+  });
+  wipAging.sort((a,b)=>b.age-a.age);
+  const avg=arr=>arr.length?Math.round(arr.reduce((s,x)=>s+x,0)/arr.length):null;
+  const arr30=all.filter(p=>isYmd(p.criadoEm)&&parseYmd(p.criadoEm)>=cutoff).length;
+  const colAgingAvg={};STAGES.forEach(s=>colAgingAvg[s]=avg(colDur[s]));
+  return {byStage,wip,backlog,done,activeStages,total:all.length,completed:byStage[done],
+    leadAvg:avg(lead),leadP50:pctile(lead,50),leadP85:pctile(lead,85),leadN:lead.length,
+    cycleAvg:avg(cycle),cycleP50:pctile(cycle,50),cycleP85:pctile(cycle,85),cycleN:cycle.length,
+    thr30,onTime,doneWithFim,arr30,colAgingAvg,wipAging};
+}
 function renderDashboard(){
+  const k=computeFlowKPIs();
+  const dd=x=>(x==null?'—':x+'d');
+  const slePct=k.doneWithFim?Math.round(k.onTime/k.doneWithFim*100):null;
+  const maxCol=Math.max(1,...STAGES.map(s=>k.byStage[s]||0));
+  const mc=(label,val,sub,accent)=>`<div class="metric"><div class="metric-accent" style="background:${accent}"></div><div class="metric-body"><div class="metric-label">${label}</div><div class="metric-value">${val}</div><div class="metric-sub">${sub}</div></div></div>`;
+  document.getElementById('app').innerHTML=`
+    <div class="metrics">
+      ${mc('WIP (em andamento)',k.wip,esc(k.activeStages.join(' + ')),'#D97706')}
+      ${mc('Throughput (30d)',k.thr30,'tarefas concluídas','#16A34A')}
+      ${mc('Lead Time médio',dd(k.leadAvg),k.leadN?k.leadN+' concluídas':'sem histórico','#2563EB')}
+      ${mc('Cycle Time médio',dd(k.cycleAvg),k.cycleN?k.cycleN+' concluídas':'sem histórico','#7C3AED')}
+    </div>
+    <div class="metrics" style="margin-top:10px">
+      ${mc('Concluídas (total)',k.completed,'de '+k.total+' tarefas','#16A34A')}
+      ${mc('Taxa no prazo',slePct==null?'—':slePct+'%',k.doneWithFim?k.onTime+'/'+k.doneWithFim+' dentro do Fim':'sem Data Fim','#0EA5E9')}
+      ${mc('Arrival Rate (30d)',k.arr30,'tarefas criadas','#E30613')}
+      ${mc('Backlog (A fazer)',k.byStage[k.backlog]||0,'aguardando início','#64748B')}
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">WIP por coluna</div>
+      <div class="chart-card-sub">Distribuição atual das tarefas</div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        ${STAGES.map(s=>`<div style="display:flex;align-items:center;gap:12px">
+          <div style="min-width:120px;font-size:13px;font-weight:500">${esc(s)}</div>
+          <div style="flex:1;height:14px;background:var(--surface2);border-radius:99px;overflow:hidden"><div style="height:100%;width:${Math.round((k.byStage[s]||0)/maxCol*100)}%;background:${stageColor(s)};border-radius:99px"></div></div>
+          <div style="min-width:30px;text-align:right;font-weight:600">${k.byStage[s]||0}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">Tempo médio por coluna (Aging)</div>
+        <div class="chart-card-sub">Quanto tempo as tarefas passam em cada etapa</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:2px">
+          ${STAGES.map(s=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:${stageColor(s)}"></span>${esc(s)}</span><b>${dd(k.colAgingAvg[s])}</b></div>`).join('')}
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">WIP Aging — mais antigas em andamento</div>
+        <div class="chart-card-sub">Tarefas paradas há mais tempo na coluna atual</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+          ${k.wipAging.length?k.wipAging.slice(0,6).map(w=>`<div onclick="openEdit('${w.p.id}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--border);border-left:3px solid ${stageColor(w.p.stage)};border-radius:8px;cursor:pointer">
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${esc(w.p.setor)||esc(w.p.nome)} <span style="color:var(--text3)">· ${esc(w.p.stage)}</span></span>
+            <b style="flex-shrink:0;color:${w.age>=14?'var(--red)':'var(--text)'}">${w.age}d</b>
+          </div>`).join(''):'<div class="empty" style="padding:1.5rem"><span>Nenhuma tarefa em andamento</span></div>'}
+        </div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">Percentis de tempo · base para SLE</div>
+      <div class="chart-card-sub">Calculado sobre tarefas concluídas com histórico de movimentação</div>
+      <div class="dash-grid" style="margin-top:12px">
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:6px">Lead Time</div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>P50 (mediana)</span><b>${dd(k.leadP50)}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>P85</span><b>${dd(k.leadP85)}</b></div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:6px">Cycle Time</div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>P50 (mediana)</span><b>${dd(k.cycleP50)}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>P85</span><b>${dd(k.cycleP85)}</b></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px">
+        ${k.cycleP85!=null?`<b>SLE sugerido:</b> 85% das tarefas concluídas em até <b>${k.cycleP85} dias</b> (P85 do Cycle Time).`:'<b>SLE:</b> sem dados suficientes — é preciso ter tarefas concluídas com histórico de movimentação para calcular o P85.'}
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-card-title">KPIs que ainda precisam de instrumentação</div>
+      <div class="chart-card-sub">Não calculáveis com os campos atuais do card</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.8">
+        <b>Blocked Time / Flow Efficiency:</b> exigem um estado "Bloqueado" com data de início e fim.<br>
+        <b>Defect Rate:</b> exige marcar retrabalho/retorno de tarefas.<br>
+        <b>Demand Type / Expedite Rate:</b> exigem um campo de tipo de demanda e classe de serviço.
+      </div>
+    </div>
+  `;
+}
+function renderDashboardOLD_unused(){
   const all=prospects;
   const totalVal=all.reduce((s,p)=>s+(Number(p.valor)||0),0);
   const avgVal=all.length?totalVal/all.length:0;
@@ -3104,7 +3564,7 @@ function renderContent(){
       const cards=vis.filter(p=>p.stage===stage);
       const grow=flexFor(cards.length);
       const stColor=stageColor(stage);
-      html+=`<div class="col" data-stage="${esc(stage)}" style="flex-grow:${grow.toFixed(2)};border-top:3px solid ${stColor}" ondragover="dragOver(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" ondrop="dropOnColEl(event,this)">
+      html+=`<div class="col" data-stage="${esc(stage)}" style="flex:1 1 0;border-top:3px solid ${stColor}" ondragover="dragOver(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" ondrop="dropOnColEl(event,this)">
         <div class="col-head" data-tip="${esc(stageDesc(stage))}">
           <span class="col-dot" style="${dotStyle(stage)}"></span>
           <span class="col-name">${esc(stage)}</span>
@@ -3122,12 +3582,12 @@ function renderContent(){
           // Todos os detalhes (valor, data, BANT, badges, mover etapa, etc.) continuam
           // acessíveis ao abrir o modal. Drag-and-drop entre colunas segue funcionando.
           // title= mostra tooltip com os dados extras no hover, sem poluir visual.
-          const tip=[p.valor?fmt(p.valor):null,dl||'Sem data',p.origem||null,hl?`${hl} interaç${hl>1?'ões':'ão'}`:null].filter(Boolean).join(' · ');
+          const tip=[p.nome?`Projeto: ${p.nome}`:null,p.contato?`Resp.: ${p.contato}`:null,dl||'Sem data',p.porte||null].filter(Boolean).join(' · ');
           html+=`<div class="card card-compact" data-card-id="${p.id}" draggable="true" style="--card-c:${stageColor(p.stage)}" ondragstart="dragStart(event,'${p.id}')" ondragend="dragEnd(event)" onclick="openEdit('${p.id}')" title="${esc(tip)}">
             <div class="card-header">
-              <div class="card-avatar ${av}">${esc(initials(p.nome))}</div>
+              <div class="card-avatar ${av}" title="Responsável: ${esc(p.contato||'—')}">${esc(initials(p.contato||p.nome))}</div>
               <div class="card-info">
-                <div class="card-name">${esc(p.nome)}</div>
+                <div class="card-name">${esc(p.setor)||'—'}</div>
                 <div class="card-empresa">${esc(p.empresa)||'—'}</div>
               </div>
               ${p.desqualificado?`<span class="card-badge-desq" title="${esc(p.motivoDesqualificacao||'Desqualificado')}">✕</span>`:''}
@@ -3139,212 +3599,46 @@ function renderContent(){
     });
     html+=`</div>`;
   } else {
-    html+=`<div class="table-wrap"><table>
-      <thead><tr>
-        <th>Nome</th><th>Empresa</th><th>Etapa</th><th>Valor</th><th>Próximo contato</th><th>Histórico</th><th>Mover</th>
-      </tr></thead><tbody>`;
+    STAGES.forEach((st,sidx)=>{
+      const rows=vis.filter(p=>p.stage===st);
+      const col=stageColor(st);
+      html+=`<div class="list-group" data-stage="${esc(st)}" ondragover="dragOver(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" ondrop="dropOnColEl(event,this)" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:9px;padding:10px 4px 9px;border-bottom:2px solid ${col};margin-bottom:2px">
+          <span style="width:9px;height:9px;border-radius:50%;background:${col}"></span>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${esc(st)}</span>
+          <span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--text2);border-radius:99px;padding:2px 9px">${rows.length}</span>
+        </div>`;
+      if(!rows.length){
+        html+=`<div style="padding:14px 6px;color:var(--text3);font-size:12.5px">Nenhuma tarefa nesta coluna — arraste uma tarefa para cá</div>`;
+      } else {
+        html+=`<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Projeto</th><th>Cliente</th><th>Responsável</th><th>Prioridade</th><th>Prazo</th>
+          </tr></thead><tbody>`;
+        rows.forEach(p=>{
+          const ds=dateStatus(p.proximoContato);
+          const dl=dateLabel(p.proximoContato);
+          const pcor=p.porte==='Alta'?'#DC2626':(p.porte==='Media'?'#D97706':'#16A34A');
+          html+=`<tr data-card-id="${p.id}" draggable="true" ondragstart="dragStart(event,'${p.id}')" ondragend="dragEnd(event)" onclick="openEdit('${p.id}')">
+            <td><div style="display:flex;align-items:center;gap:9px">
+              <div class="card-avatar ${avColor(p.id,p.origem)}" style="width:30px;height:30px;font-size:11px;border-radius:8px">${esc(initials(p.nome))}</div>
+              <span class="td-name">${esc(p.nome)}</span>
+            </div></td>
+            <td class="td-company">${esc(p.empresa)||'—'}</td>
+            <td>${esc(p.contato)||`<span style="color:var(--text3);font-size:12px">—</span>`}</td>
+            <td>${p.porte?`<span class="badge dyn" style="--c:${pcor};--c-bg:${hex2rgba(pcor,0.12)}">${esc(p.porte)}</span>`:`<span style="color:var(--text3);font-size:12px">—</span>`}</td>
+            <td>${dl?`<span class="date-badge date-${ds}">${esc(dl)}</span>`:`<span style="color:var(--text3);font-size:12px">—</span>`}</td>
+          </tr>`;
+        });
+        html+=`</tbody></table></div>`;
+      }
+      html+=`</div>`;
+    });
     if(!vis.length){
-      html+=`<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--text3)">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">${ICONS.empty}<span>Nenhum prospecto encontrado</span></div>
-      </td></tr>`;
-    } else {
-      vis.forEach(p=>{
-        const si=STAGES.indexOf(p.stage);
-        const ds=dateStatus(p.proximoContato);
-        const dl=dateLabel(p.proximoContato);
-        const hl=(p.historico||[]).length;
-        html+=`<tr onclick="openEdit('${p.id}')">
-          <td><div style="display:flex;align-items:center;gap:9px">
-            <div class="card-avatar ${avColor(p.id,p.origem)}" style="width:30px;height:30px;font-size:11px;border-radius:8px">${esc(initials(p.nome))}</div>
-            <span class="td-name">${esc(p.nome)}</span>
-          </div></td>
-          <td class="td-company">${esc(p.empresa)||'—'}</td>
-          <td><span class="badge dyn" style="--c:${stageColor(p.stage)};--c-bg:${hex2rgba(stageColor(p.stage),0.12)}">${esc(p.stage)}</span></td>
-          <td style="font-weight:500">${fmt(p.valor)}</td>
-          <td>${dl?`<span class="date-badge date-${ds}">${esc(dl)}</span>`:`<span style="color:var(--text3);font-size:12px">—</span>`}</td>
-          <td class="td-hist">${hl?`${hl} registro${hl>1?'s':''}`:'—'}</td>
-          <td onclick="event.stopPropagation()">
-            <div class="move-btns" style="margin-top:0">
-              ${si>0?`<button class="move-btn" onclick="moveStage('${p.id}',-1,event)">${ICONS.arrowL}</button>`:''}
-              ${si<STAGES.length-1?`<button class="move-btn" onclick="moveStage('${p.id}',1,event)">${ICONS.arrowR}</button>`:''}
-            </div>
-          </td>
-        </tr>`;
-      });
+      html+=`<div style="text-align:center;padding:2rem;color:var(--text3)"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${ICONS.empty}<span>Nenhuma tarefa encontrada</span></div></div>`;
     }
-    html+=`</tbody></table></div>`;
   }
   area.innerHTML=html;
-}
-
-function renderModal(){
-  let ov=document.getElementById('modal-overlay');
-  if(!modal){if(ov)ov.remove();return}
-  if(!ov){
-    ov=document.createElement('div');
-    ov.id='modal-overlay';
-    ov.className='overlay';
-    ov.addEventListener('click',closeModal);
-    document.body.appendChild(ov);
-  }
-  const hl=(modal.historico||[]).length;
-  let mhtml=`<div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-top">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <h2>${editId?esc(modal.nome)||'Editar prospecção':'Nova Prospecção'}</h2>
-        <button class="btn ghost" style="padding:6px" aria-label="Fechar" onclick="closeModal()">${ICONS.close}</button>
-      </div>
-      <div class="tabs">
-        <div class="tab${modalTab==='dados'?' active':''}" onclick="setTab('dados')">Dados</div>
-        <div class="tab${modalTab==='hist'?' active':''}" onclick="setTab('hist')">Histórico${hl?` (${hl})`:''}</div>
-      </div>
-    </div>
-    <div class="modal-body">`;
-
-  if(modalTab==='dados'){
-    mhtml+=`
-      <div class="modal-row">
-        <div class="field"><label>Nome *</label><input value="${esc(modal.nome)}" oninput="setField('nome',this.value)" placeholder="Nome do responsável"></div>
-        <div class="field"><label>Empresa</label><input value="${esc(modal.empresa)}" oninput="setField('empresa',this.value)" placeholder="Razão social"></div>
-      </div>
-      <div class="modal-row">
-        <div class="field"><label>Cargo</label><input value="${esc(modal.contato)}" oninput="setField('contato',this.value)" placeholder="Cargo ou função"></div>
-        <div class="field"><label>Telefone</label><input value="${esc(modal.telefone)}" oninput="setField('telefone',this.value)" placeholder="(xx) xxxxx-xxxx"></div>
-      </div>
-      <div class="modal-row">
-        <div class="field"><label>E-mail</label><input value="${esc(modal.email)}" oninput="setField('email',this.value)" placeholder="email@empresa.com"></div>
-        <div class="field"><label>Valor estimado (R$)</label><input type="number" value="${esc(modal.valor)}" oninput="setField('valor',this.value)" placeholder="0"></div>
-      </div>
-      <div class="modal-row">
-        <div class="field"><label>Etapa</label><select oninput="setField('stage',this.value)">${STAGES.map(s=>`<option value="${esc(s)}"${modal.stage===s?' selected':''}>${esc(s)}</option>`).join('')}</select></div>
-        <div class="field"><label>Próximo contato</label>
-          <div style="display:flex;gap:6px">
-            <input type="date" style="flex:2" value="${esc(modal.proximoContato)}" oninput="setField('proximoContato',this.value)">
-            <input type="time" style="flex:1" value="${esc(modal.horaContato)}" oninput="setField('horaContato',this.value)" title="Hora (opcional)">
-          </div>
-        </div>
-      </div>
-      <div class="modal-row">
-        <div class="field"><label>Origem do Lead</label>
-          <select oninput="setField('origem',this.value)">
-            <option value="">— Selecione —</option>
-            ${origensConfig.map(o=>`<option value="${esc(o)}"${modal.origem===o?' selected':''}>${esc(o)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field"><label>Setor</label>
-          <select oninput="setField('setor',this.value);renderModal()">
-            <option value="">— Selecione —</option>
-            ${setoresConfig.map(s=>`<option value="${esc(s)}"${modal.setor===s?' selected':''}>${esc(s)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-      <div class="modal-row">
-        <div class="field"><label>Porte da empresa</label>
-          <select oninput="setField('porte',this.value);renderModal()">
-            <option value="">— Selecione —</option>
-            ${DEFAULT_PORTES.map(pt=>`<option value="${esc(pt.label)}"${modal.porte===pt.label?' selected':''}>${esc(pt.label)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field">
-          <label>ICP Fit (fit ao perfil ideal)</label>
-          ${(()=>{const s=icpScore(modal);const color=s>=70?'var(--green)':(s>=40?'var(--amber)':'var(--red)');return `<div style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius);display:flex;align-items:center;gap:10px;background:var(--bg)">
-            <div style="flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden"><div style="height:100%;width:${s}%;background:${color};border-radius:99px"></div></div>
-            <div style="font-size:13px;font-weight:700;color:${color};min-width:50px;text-align:right">${s}/100</div>
-          </div>`})()}
-        </div>
-      </div>
-      ${editId?(()=>{const nc=nextCadenceStep(modal);if(!nc)return '';const status=nc.daysUntil<0?'atrasado':(nc.daysUntil===0?'hoje':`em ${nc.daysUntil} dias`);const color=nc.daysUntil<0?'var(--red)':(nc.daysUntil<=1?'var(--amber)':'var(--blue)');return `<div class="field" style="padding:12px;background:${nc.daysUntil<0?'var(--red-bg)':'var(--blue-bg)'};border:1px solid ${nc.daysUntil<0?'var(--red-mid)':'var(--blue-mid)'};border-radius:var(--radius);margin-bottom:14px">
-        <label style="margin-bottom:4px;display:block;color:${color};text-transform:uppercase;font-size:10.5px">⚡ Próxima ação sugerida · ${status}</label>
-        <div style="font-size:13px;color:var(--text);font-weight:500"><b>${esc(nc.tipo)}</b> — ${esc(nc.acao)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">Régua D+${nc.dia} · ${nc.daysSinceStart} ${nc.daysSinceStart===1?'dia':'dias'} desde a criação</div>
-      </div>`})():''}
-      <div class="field" style="padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)">
-        <label style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-          <span>Outros contatos da empresa <span style="text-transform:none;color:var(--text3);font-weight:400;font-size:10.5px;letter-spacing:0">${(modal.contatosExtras||[]).length} cadastrado${(modal.contatosExtras||[]).length!==1?'s':''}</span></span>
-          <button class="btn" onclick="addContato()" style="padding:4px 10px;font-size:11.5px;text-transform:none;letter-spacing:0">${ICONS.plus} Adicionar</button>
-        </label>
-        ${(modal.contatosExtras||[]).map(c=>`
-          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
-            <input type="text" placeholder="Nome" value="${esc(c.nome)}" oninput="updateContato('${c.id}','nome',this.value)" style="flex:1;min-width:110px;padding:6px 9px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;background:transparent;color:var(--text)">
-            <input type="text" placeholder="Cargo" value="${esc(c.cargo)}" oninput="updateContato('${c.id}','cargo',this.value)" style="flex:1;min-width:100px;padding:6px 9px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;background:transparent;color:var(--text)">
-            <select onchange="updateContato('${c.id}','role',this.value)" style="padding:6px 9px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;background:transparent;color:var(--text)">
-              <option value="">Papel</option>
-              ${CONTATO_ROLES.map(r=>`<option value="${r}"${c.role===r?' selected':''}>${r}</option>`).join('')}
-            </select>
-            <input type="text" placeholder="E-mail" value="${esc(c.email)}" oninput="updateContato('${c.id}','email',this.value)" style="flex:1;min-width:140px;padding:6px 9px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;background:transparent;color:var(--text)">
-            <input type="text" placeholder="Telefone" value="${esc(c.telefone)}" oninput="updateContato('${c.id}','telefone',this.value)" style="flex:1;min-width:110px;padding:6px 9px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;background:transparent;color:var(--text)">
-            <button onclick="removeContato('${c.id}')" style="padding:5px 8px;background:transparent;border:1px solid var(--red-mid);color:var(--red);border-radius:var(--radius);cursor:pointer;font-size:11px" title="Remover contato">×</button>
-          </div>
-        `).join('')}
-        ${!(modal.contatosExtras||[]).length?`<div style="font-size:11.5px;color:var(--text3);padding:8px 0">Adicione contatos adicionais da empresa: outros decisores, influenciadores ou gatekeepers.</div>`:''}
-      </div>
-      <div class="field" style="padding:14px;border:1px dashed var(--border2);border-radius:var(--radius)">
-        <label style="margin-bottom:10px;display:block">Qualificação BANT <span style="text-transform:none;color:var(--text3);font-weight:400;font-size:10.5px;letter-spacing:0">marque o que se confirma</span></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text);text-transform:none;letter-spacing:0"><input type="checkbox" ${modal.bantB?'checked':''} onchange="setField('bantB',this.checked);renderModal()" style="width:14px;height:14px;cursor:pointer"><b>Budget</b> <span style="color:var(--text3)">— tem orçamento</span></label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text);text-transform:none;letter-spacing:0"><input type="checkbox" ${modal.bantA?'checked':''} onchange="setField('bantA',this.checked);renderModal()" style="width:14px;height:14px;cursor:pointer"><b>Authority</b> <span style="color:var(--text3)">— é decisor</span></label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text);text-transform:none;letter-spacing:0"><input type="checkbox" ${modal.bantN?'checked':''} onchange="setField('bantN',this.checked);renderModal()" style="width:14px;height:14px;cursor:pointer"><b>Need</b> <span style="color:var(--text3)">— tem necessidade</span></label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text);text-transform:none;letter-spacing:0"><input type="checkbox" ${modal.bantT?'checked':''} onchange="setField('bantT',this.checked);renderModal()" style="width:14px;height:14px;cursor:pointer"><b>Timing</b> <span style="color:var(--text3)">— é o momento</span></label>
-        </div>
-        ${(()=>{const s=bantScore(modal);const st=scoreStatus(s);return `<div style="margin-top:12px;display:flex;align-items:center;gap:10px">
-          <div style="flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden"><div style="height:100%;width:${s}%;background:${st.color};border-radius:99px;transition:width 0.3s"></div></div>
-          <div style="font-size:13px;font-weight:700;color:${st.color};min-width:110px;text-align:right">${s}/100 <span style="font-size:10.5px;background:${st.bg};color:${st.color};padding:2px 8px;border-radius:99px;font-weight:600;margin-left:4px">${st.label}</span></div>
-        </div>`})()}
-      </div>
-      <div class="field" style="padding:12px;border:1px dashed var(--border2);border-radius:var(--radius);background:${modal.desqualificado?'var(--red-bg)':'transparent'}">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:${modal.desqualificado?'var(--red)':'var(--text)'}">
-          <input type="checkbox" ${modal.desqualificado?'checked':''} onchange="toggleDesqualificado(this.checked)" style="width:16px;height:16px;cursor:pointer">
-          ${modal.desqualificado?'✕ Prospecto desqualificado':'Desqualificar prospecto'}
-        </label>
-        ${modal.desqualificado?`<div style="margin-top:10px"><label style="font-size:11px;color:var(--red);margin-bottom:6px">Motivo da desqualificação *</label>
-          <select oninput="setField('motivoDesqualificacao',this.value)" style="border-color:var(--red-mid)">
-            <option value="">— Selecione o motivo —</option>
-            ${motivosConfig.map(m=>`<option value="${esc(m)}"${modal.motivoDesqualificacao===m?' selected':''}>${esc(m)}</option>`).join('')}
-          </select>
-        </div>`:''}
-      </div>
-      <div class="field"><label>Notas</label><textarea oninput="setField('notas',this.value)" placeholder="Observações, próximos passos...">${esc(modal.notas)}</textarea></div>`;
-  } else {
-    const hist=modal.historico||[];
-    mhtml+=`<div class="hist-list">`;
-    if(!hist.length)mhtml+=`<div class="empty">${ICONS.empty}<span>Nenhuma interação registrada</span></div>`;
-    hist.forEach(h=>{
-      const userShort=h.user?h.user.split('@')[0]:'';
-      mhtml+=`<div class="hist-item${h.auto?' hist-auto':''}">
-        <div class="hist-meta">
-          <span class="htag ${TIPO_CLS[h.tipo]||'ht-nota'}">${esc(h.tipo)}</span>
-          ${userShort?`<span class="hist-user">por ${esc(userShort)}</span>`:''}
-          <span class="hist-date">${fmtDateFull(h.data)||h.data}${h.hora?' · '+esc(h.hora):''}</span>
-          ${h.auto?'':`<button class="hist-del" onclick="delHist('${h.id}')">remover</button>`}
-        </div>
-        <div class="hist-texto">${esc(h.texto)}</div>
-      </div>`;
-    });
-    mhtml+=`</div>
-    <div class="hist-add">
-      <textarea placeholder="Descreva a interação..." oninput="newHistTxt=this.value">${esc(newHistTxt)}</textarea>
-      <div class="hist-add-row">
-        <select onchange="newHistTipo=this.value">${TIPOS.map(t=>`<option value="${t}"${newHistTipo===t?' selected':''}>${t}</option>`).join('')}</select>
-        <button class="btn primary" onclick="addHist()">${ICONS.plus} Registrar</button>
-      </div>
-    </div>`;
-  }
-
-  mhtml+=`</div>
-    <div class="modal-footer">
-      ${editId?`<button class="btn del-btn" onclick="deleteProspect()" title="Excluir prospecto">${ICONS.trash} Excluir</button>`:''}
-      ${editId?`<div style="display:flex;gap:3px;align-items:center">
-        <button class="btn" onclick="openTemplatePicker('WhatsApp')" title="Enviar WhatsApp" aria-label="Enviar WhatsApp" style="--btn-ic:#25D366;padding:7px 9px">${ICONS.wa}</button>
-        <button class="btn" onclick="openTemplatePicker('E-mail')" title="Enviar e-mail" aria-label="Enviar e-mail" style="--btn-ic:#EA4335;padding:7px 9px">${ICONS.mail}</button>
-        <button class="btn" onclick="openTemplatePicker('LinkedIn')" title="Copiar mensagem LinkedIn" aria-label="Copiar LinkedIn" style="--btn-ic:#0A66C2;padding:7px 9px">${ICONS.linkedin}</button>
-        ${modal.proximoContato?`<button class="btn" onclick="openOutlookEvent()" title="Agendar no Outlook" aria-label="Agendar no Outlook" style="--btn-ic:#0078D4;padding:7px 9px">${ICONS.calendar}</button>`:''}
-        <button class="btn" onclick="generateBriefing()" title="Gerar Briefing PDF para handoff" aria-label="Gerar Briefing PDF" style="--btn-ic:#DC2626;padding:7px 9px">${ICONS.file}</button>
-      </div>`:''}
-      <button class="btn" onclick="closeModal()">Cancelar</button>
-      <button class="btn primary" onclick="saveModal()">Salvar</button>
-    </div>
-  </div>`;
-  ov.innerHTML=mhtml;
 }
 
 async function init(){
@@ -3357,6 +3651,8 @@ async function init(){
   await loadSignatureConfig();
   await loadCadenciaConfig();
   await loadGoalsConfig();
+  await loadEntregaveisConfig();
+  await loadResponsaveisConfig();
   prospects=await dbFetch();
   renderFull();
 }
